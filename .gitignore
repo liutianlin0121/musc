@@ -1,0 +1,18 @@
+.ipynb_checkpoints/
+*.pyc
+__pycache__/
+saved_models/
+figs/
+musc/hacks
+deprecated/
+.DS_Store
+*/.ipynb_checkpoints/*
+*/. DS_Store/*
+.db
+.owncloudsync.log
+.db-shm
+.db-wal
+.sync_5de6efbf0140.db-shm
+*.h5
+*.pth
+musc.egg-info/
