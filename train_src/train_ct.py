@@ -4,8 +4,11 @@ from torch import nn
 from torch.nn.functional import mse_loss
 import torch
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.strategies.ddp import DDPStrategy
+# from lightning.pytorch import Trainer
+# from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
+# import lightning.pytorch as pl
+from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
+# from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.loggers import TensorBoardLogger
 
 from musc.dataloaders.load_lodopab_ct import get_dataloaders_ct
@@ -32,7 +35,8 @@ parser.add_argument('--HIDDEN_WIDTHS', type=int, nargs='+',
                     default=[512, 256, 128, 64, 32], help='')
 parser.add_argument('--ISTA_NUM_STEPS', type=int, default=5,
                     help='number of ISTA iterations.')
-parser.add_argument('--LASSO_LAMBDA_SCALAR', type=float, default=0.001,
+parser.add_argument('--LASSO_LAMBDA_SCALAR_LIST',type=float,
+                    default=[0.0, 0.0, 0.0, 0.01, 0.1],
                     help='initialized LASSO parameter.')
 parser.add_argument('--RELU_OUT_BOOL', default=True,
                     type=lambda x: (str(x).lower() == 'true'))
@@ -57,7 +61,7 @@ parser.add_argument('--GRADIENT_CLIP_VAL', type=float, default=1e-2,
 parser.add_argument('--ETA_MIN', type=float, default=1e-5,
                     help='the eta_min for CosineAnnealingLR decay.')
 parser.add_argument('--EPS', type=float, default=5e-8)
-parser.add_argument('--MIXED_PRECISION', default=True,
+parser.add_argument('--MIXED_PRECISION', default=False,
                     type=lambda x: (str(x).lower() == 'true'),
                     help='whether to use mixed precision training')
 
@@ -70,86 +74,88 @@ parser.add_argument('--gpu_devices', type=int, nargs='+', default=[0, 1],
 
 
 def main():
-    """Main function."""
-    pl.seed_everything(1234)
-    args = parser.parse_args()
+  """Main function."""
+  pl.seed_everything(1234)
+  args = parser.parse_args()
 
-    dataset_setting_dict = {'batch_size': args.BATCH_SIZE,
-                            'num_workers': args.num_workers,
-                            'train_percent': args.TRAIN_PERCENT}
+  dataset_setting_dict = {
+    'batch_size': args.BATCH_SIZE,
+    'num_workers': args.num_workers,
+    'train_percent': args.TRAIN_PERCENT}
 
-    loaders = get_dataloaders_ct(**dataset_setting_dict)
+  loaders = get_dataloaders_ct(**dataset_setting_dict)
 
-    if args.LOSS_STR == 'nn.MSELoss()':
-        train_loss_fun = nn.MSELoss()
-    elif args.LOSS_STR == 'nn.L1Loss()':
-        train_loss_fun = nn.L1Loss()
-    else:
-        raise ValueError('Invalid loss function.')
+  if args.LOSS_STR == 'nn.MSELoss()':
+    train_loss_fun = nn.MSELoss()
+  elif args.LOSS_STR == 'nn.L1Loss()':
+    train_loss_fun = nn.L1Loss()
+  else:
+    raise ValueError('Invalid loss function.')
 
-    def my_psnr(x_input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        """Function that computes PSNR
-        """
-        mse_val = mse_loss(x_input, target, reduction='mean')
-        max_val_tensor: torch.Tensor = torch.max(
-            target).clone().detach().to(x_input.device).to(x_input.dtype)
-        return 10 * torch.log10(max_val_tensor * max_val_tensor / mse_val)
+  def my_psnr(x_input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    """Function that computes PSNR
+    """
+    mse_val = mse_loss(x_input, target, reduction='mean')
+    max_val_tensor: torch.Tensor = torch.max(
+        target).clone().detach().to(x_input.device).to(x_input.dtype)
+    return 10 * torch.log10(max_val_tensor * max_val_tensor / mse_val)
 
-    model_setting_dict = {
-        'kernel_size': args.KERNEL_SIZE,
-        'hidden_layer_widths': args.HIDDEN_WIDTHS,
-        'n_classes': args.IMAGE_CHANNEL_NUM,
-        'ista_num_steps': args.ISTA_NUM_STEPS,
-        'lasso_lambda_scalar': args.LASSO_LAMBDA_SCALAR,
-        'tied_adjoint_encoder_bool': args.TIED_ADJOINT_ENCODER_BOOL,
-        'tied_encoder_decoder_bool': args.TIED_ENCODER_DECODER_BOOL,
-        'nonneg_code_bool': args.NONNEG_CODE_BOOL,
-        'fixed_lambda_bool': args.FIXED_LAMBDA_BOOL,
-        'learning_rate': args.LEARNING_RATE,
-        'train_loss_fun': train_loss_fun,
-        'eval_loss_fun': my_psnr,  # partial(psnr, max_val=1.),
-        'relu_out_bool': args.RELU_OUT_BOOL,
-        'eta_min': args.ETA_MIN,
-        't_max': args.NUM_EPOCH * len(loaders['train']),
-        'eps': args.EPS
-        }
-    print(model_setting_dict)
-    model = LitMUSC(**model_setting_dict)
-    checkpoint_callback = ModelCheckpoint(
-        monitor='hp_metric/val_metric',
-        save_top_k=1,
-        mode='max')
+  model_setting_dict = {
+      'kernel_size': args.KERNEL_SIZE,
+      'hidden_layer_widths': args.HIDDEN_WIDTHS,
+      'n_classes': args.IMAGE_CHANNEL_NUM,
+      'ista_num_steps': args.ISTA_NUM_STEPS,
+      'lasso_lambda_scalar_list': args.LASSO_LAMBDA_SCALAR_LIST,
+      'tied_adjoint_encoder_bool': args.TIED_ADJOINT_ENCODER_BOOL,
+      'tied_encoder_decoder_bool': args.TIED_ENCODER_DECODER_BOOL,
+      'nonneg_code_bool': args.NONNEG_CODE_BOOL,
+      'fixed_lambda_bool': args.FIXED_LAMBDA_BOOL,
+      'learning_rate': args.LEARNING_RATE,
+      'train_loss_fun': train_loss_fun,
+      'eval_loss_fun': my_psnr,  # partial(psnr, max_val=1.),
+      'relu_out_bool': args.RELU_OUT_BOOL,
+      'eta_min': args.ETA_MIN,
+      't_max': args.NUM_EPOCH * len(loaders['train']),
+      'eps': args.EPS
+      }
+  print(model_setting_dict)
+  model = LitMUSC(**model_setting_dict)
+  checkpoint_callback = ModelCheckpoint(
+      monitor='hp_metric/val_metric',
+      save_top_k=1,
+      mode='max')
 
-    if args.MIXED_PRECISION:
-        precision = 16
-    else:
-        precision = 32
+  if args.MIXED_PRECISION:
+    precision = 16
+  else:
+    precision = 32
 
-    model_save_dir = str(get_musc_root()) + '/saved_models/'
-    logger = TensorBoardLogger(
-        model_save_dir,
-        name=args.task_name,
-        )
-    logger.log_hyperparams(model.hparams)
+  model_save_dir = str(get_musc_root()) + '/saved_models/'
+  logger = TensorBoardLogger(
+      model_save_dir,
+      name=args.task_name,
+      )
+  logger.log_hyperparams(model.hparams)
 
-    trainer = pl.Trainer(
-        profiler='simple',
-        logger=logger,
-        # track_grad_norm=2,
-        devices=args.gpu_devices,
-        accelerator='gpu',
-        strategy=DDPStrategy(find_unused_parameters=False),
-        max_epochs=args.NUM_EPOCH,
-        gradient_clip_val=args.GRADIENT_CLIP_VAL,
-        callbacks=[checkpoint_callback],
-        default_root_dir=model_save_dir + '/' + args.task_name,
-        precision=precision
-        )
+  lr_monitor = LearningRateMonitor(logging_interval='step')
+  trainer = pl.Trainer(
+    profiler='simple',
+    logger=logger,
+    # track_grad_norm=2,
+    devices=args.gpu_devices,
+    accelerator='gpu',
+    strategy='ddp', #DDPStrategy(find_unused_parameters=False),
+    max_epochs=args.NUM_EPOCH,
+    gradient_clip_val=args.GRADIENT_CLIP_VAL,
+    callbacks=[checkpoint_callback, lr_monitor],
+    default_root_dir=model_save_dir + '/' + args.task_name,
+    precision=precision
+    )
 
-    trainer.fit(model,
-                train_dataloaders=loaders['train'],
-                val_dataloaders=loaders['validation'])
+  trainer.fit(model,
+              train_dataloaders=loaders['train'],
+              val_dataloaders=loaders['validation'])
 
 
 if __name__ == '__main__':
-    main()
+  main()

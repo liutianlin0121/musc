@@ -1,16 +1,12 @@
 {
     "python.linting.pylintEnabled": true,
     "python.linting.enabled": true,
-    "python.formatting.provider": "yapf", // or "black" here
     "python.linting.pylintArgs": [
+        "--rcfile=/home/liu0003/Desktop/projects/musc/.pylintrc",
         "--disable=W0221, W0613",
         "--generated-members",
         "torch.*"
     ],
-    "editor.formatOnSave": true,
-    "python.formatting.yapfArgs": [
-        " — style",
-        "{based_on_style: pylint, indent_width: 4}"
-    ],
-    "python.linting.flake8Enabled": true,
+    "editor.formatOnSave": false,
+    "python.linting.flake8Enabled": false,
 }
