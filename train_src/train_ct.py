@@ -36,7 +36,7 @@ parser.add_argument('--HIDDEN_WIDTHS', type=int, nargs='+',
 parser.add_argument('--ISTA_NUM_STEPS', type=int, default=5,
                     help='number of ISTA iterations.')
 parser.add_argument('--LASSO_LAMBDA_SCALAR_LIST',type=float,
-                    default=[0.0, 0.0, 0.0, 0.01, 0.1],
+                    default=[0.001, 0.001, 0.001, 0.001, 0.001],
                     help='initialized LASSO parameter.')
 parser.add_argument('--RELU_OUT_BOOL', default=True,
                     type=lambda x: (str(x).lower() == 'true'))
@@ -56,6 +56,7 @@ parser.add_argument('--LOSS_STR', type=str, default='nn.MSELoss()',
                     help='the loss function from the torch.nn module.')
 parser.add_argument('--LEARNING_RATE', type=float, default=2e-4,
                     help='learning rate of gradient descent.')
+parser.add_argument('--WEIGHT_DECAY', type=float, default=1e-6)
 parser.add_argument('--GRADIENT_CLIP_VAL', type=float, default=1e-2,
                     help='gradient clipping value')
 parser.add_argument('--ETA_MIN', type=float, default=1e-5,
@@ -112,16 +113,17 @@ def main():
       'fixed_lambda_bool': args.FIXED_LAMBDA_BOOL,
       'learning_rate': args.LEARNING_RATE,
       'train_loss_fun': train_loss_fun,
+      'weight_decay': args.WEIGHT_DECAY,
       'eval_loss_fun': my_psnr,  # partial(psnr, max_val=1.),
       'relu_out_bool': args.RELU_OUT_BOOL,
       'eta_min': args.ETA_MIN,
-      't_max': args.NUM_EPOCH * len(loaders['train']),
+      't_max': args.NUM_EPOCH * len(loaders['train']) // len(args.gpu_devices),
       'eps': args.EPS
       }
   print(model_setting_dict)
   model = LitMUSC(**model_setting_dict)
   checkpoint_callback = ModelCheckpoint(
-      monitor='hp_metric/val_metric',
+      monitor='val_metric',
       save_top_k=1,
       mode='max')
 

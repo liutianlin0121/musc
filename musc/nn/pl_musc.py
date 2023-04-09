@@ -64,7 +64,7 @@ class LitMUSC(pl.LightningModule):
     x, y, *_ = batch
     forward_output = self.model(x)
     loss = self.train_loss_fun(forward_output, y)
-    self.log('hp_metric/train_loss',
+    self.log('train_loss',
               loss,
               prog_bar=True,
               sync_dist=True)
@@ -76,7 +76,7 @@ class LitMUSC(pl.LightningModule):
     x, y, *_ = batch
     output = self(x)
     val_metric = self.eval_loss_fun(output, y).detach()
-    self.log("hp_metric/val_metric",
+    self.log("val_metric",
              val_metric,
              on_epoch=True,
              prog_bar=True,
@@ -85,9 +85,10 @@ class LitMUSC(pl.LightningModule):
   def configure_optimizers(self, interval='step'):
     # pylint: disable=missing-function-docstring
     # pylint:disable=invalid-name
-    optimizer = torch.optim.Adam(
+    optimizer = torch.optim.AdamW(
         self.parameters(),
         lr=self.learning_rate,
+	weight_decay=self.weight_decay,
         eps=self.eps)
     # https://github.com/Lightning-AI/lightning/issues/9475
     sched_config = {
@@ -95,17 +96,11 @@ class LitMUSC(pl.LightningModule):
         optimizer,
         T_max=self.t_max,
         eta_min=self.eta_min),
-        'interval': 'step'
+        'interval': 'step',
+	'frequency': 1
     }
     return {
         "optimizer": optimizer,
         "lr_scheduler": sched_config
     }
-
-
-    # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-    #     optimizer,
-    #     T_max=self.t_max,
-    #     eta_min=self.eta_min)
-    # return [optimizer], [scheduler]
 

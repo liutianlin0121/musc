@@ -1,6 +1,7 @@
 """Sparse coding module"""
 from typing import List, Optional
 import torch.nn as nn
+# from nn.functional import softplus
 import torch
 from musc.nn.dictionary import UDictionary, TransposedUDictionary
 from musc.nn.activations import relu, softshrink
@@ -103,6 +104,17 @@ class MUSC(nn.Module):
       for param in self.lasso_lambda_iter_list.parameters():
         param.requires_grad = False
 
+    self.ista_stepsizes = torch.nn.ParameterList(
+       [nn.Parameter(torch.ones(1) * 0.6) for i in range(self.ista_num_steps)])
+
+  def forward(self, x):
+    # pylint: disable=missing-function-docstring
+    # pylint:disable=invalid-name
+    alphas = self.run_ista_steps(x)
+    output = self.decoder_dictionary(alphas)
+    output = self.out_transform(output)
+    return output
+
 
   def run_ista_steps(self, z):
     """ISTA steps
@@ -114,25 +126,21 @@ class MUSC(nn.Module):
     Dtz = Dt(z)  # D^{\top}z
 
     for step in range(self.ista_num_steps):
+      # make sure that the stepsize is positive
+      stepsize = nn.functional.softplus(self.ista_stepsizes[step])
       if step == 0:
         # \alpha <= D^{\top}z
-        alphas = Dtz
+        alphas = [stepsize * code for code in Dtz]
       else:
-        # \alpha <= \alpha + D^{\top}z - D^{\top}D \alpha)
+        # \alpha <= \alpha + stepsize * (D^{\top}z - D^{\top}D \alpha))
         DtDalphas = Dt(D(alphas))
         for scale in range(self.num_scales):
-          alphas[scale] = alphas[scale] + Dtz[scale] - DtDalphas[scale]
+           alphas[scale] = \
+             alphas[scale] + stepsize * (Dtz[scale] - DtDalphas[scale])
 
       for scale in range(self.num_scales):
         alphas[scale] = self.thres_operator(
-          alphas[scale],
-          lambd=self.lasso_lambda_iter_list[step * self.num_scales + scale])
+           alphas[scale],
+           lambd=stepsize * self.lasso_lambda_iter_list[
+             step * self.num_scales + scale])
     return alphas
-
-  def forward(self, x):
-    # pylint: disable=missing-function-docstring
-    # pylint:disable=invalid-name
-    alphas = self.run_ista_steps(x)
-    output = self.decoder_dictionary(alphas)
-    output = self.out_transform(output)
-    return output
