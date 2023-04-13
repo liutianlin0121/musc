@@ -19,11 +19,11 @@ We present a novel multiscale dictionary model that is both simple and mathemati
 
 If you're interested in experimenting with MUSC, we've prepared two Google Colab notebooks that are very easy to use. There's no need to install anything, and you can run them directly in your browser:
 
-1. Evaluating and visualizing a trained MUSC model on [LoDoPaB-CT](https://zenodo.org/record/3384092) samples by [Leuschner *et al.* (2021)](https://www.nature.com/articles/s41597-021-00893-z
-)   
+1. Evaluate and visualize a trained MUSC model on the [LoDoPaB-CT dataset](https://zenodo.org/record/3384092) [(Leuschner *et al.*, 2021)](https://www.nature.com/articles/s41597-021-00893-z
+)  
     [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1zFMbqLVYuvCboW_YJIaFhzPWsnQ1siQG?usp=sharing)
 
-2. Training a small MUSC model from scratch on the [ellipses dataset](https://github.com/panakino/FBPConvNet) by [Jin *et al.* (2017)](https://ieeexplore.ieee.org/document/7949028/)  
+2. Train a small MUSC model from scratch on the [ellipses dataset](https://github.com/panakino/FBPConvNet) [(Jin *et al.*, 2017)](https://ieeexplore.ieee.org/document/7949028/)  
     [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1O2LFD0SF-wxUD6rLvnR1Vcam6qCSwg3h?usp=sharing)
 
 
