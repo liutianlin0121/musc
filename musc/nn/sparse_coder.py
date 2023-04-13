@@ -105,7 +105,7 @@ class MUSC(nn.Module):
         param.requires_grad = False
 
     self.ista_stepsizes = torch.nn.ParameterList(
-       [nn.Parameter(torch.ones(1) * 0.6) for i in range(self.ista_num_steps)])
+        [nn.Parameter(torch.ones(1) * 0.6) for i in range(self.ista_num_steps)])
 
   def forward(self, x):
     # pylint: disable=missing-function-docstring
@@ -114,7 +114,6 @@ class MUSC(nn.Module):
     output = self.decoder_dictionary(alphas)
     output = self.out_transform(output)
     return output
-
 
   def run_ista_steps(self, z):
     """ISTA steps
@@ -135,12 +134,12 @@ class MUSC(nn.Module):
         # \alpha <= \alpha + stepsize * (D^{\top}z - D^{\top}D \alpha))
         DtDalphas = Dt(D(alphas))
         for scale in range(self.num_scales):
-           alphas[scale] = \
-             alphas[scale] + stepsize * (Dtz[scale] - DtDalphas[scale])
+            alphas[scale] = \
+              alphas[scale] + stepsize * (Dtz[scale] - DtDalphas[scale])
 
       for scale in range(self.num_scales):
         alphas[scale] = self.thres_operator(
-           alphas[scale],
-           lambd=stepsize * self.lasso_lambda_iter_list[
-             step * self.num_scales + scale])
+            alphas[scale],
+            lambd=stepsize * self.lasso_lambda_iter_list[
+              step * self.num_scales + scale])
     return alphas

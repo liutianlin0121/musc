@@ -36,7 +36,7 @@ parser.add_argument('--HIDDEN_WIDTHS', type=int, nargs='+',
 parser.add_argument('--ISTA_NUM_STEPS', type=int, default=5,
                     help='number of ISTA iterations.')
 parser.add_argument('--LASSO_LAMBDA_SCALAR_LIST',type=float,
-                    default=[0.001, 0.001, 0.001, 0.001, 0.001],
+                    default=[0.0, 0.0, 0.0, 0.01, 0.1],
                     help='initialized LASSO parameter.')
 parser.add_argument('--RELU_OUT_BOOL', default=True,
                     type=lambda x: (str(x).lower() == 'true'))
@@ -146,7 +146,7 @@ def main():
     # track_grad_norm=2,
     devices=args.gpu_devices,
     accelerator='gpu',
-    strategy='ddp', #DDPStrategy(find_unused_parameters=False),
+    strategy='deepspeed_stage_2', #'ddp_sharded', #'ddp', #DDPStrategy(find_unused_parameters=False),
     max_epochs=args.NUM_EPOCH,
     gradient_clip_val=args.GRADIENT_CLIP_VAL,
     callbacks=[checkpoint_callback, lr_monitor],

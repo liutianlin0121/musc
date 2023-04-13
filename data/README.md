@@ -1,0 +1,1 @@
+The file named 10_lodopab_ct_test_samples.pt comprises 10 samples extracted from the test fold of the [LoDoPaB-CT dataset](https://www.nature.com/articles/s41597-021-00893-z) and is intended for visualization purposes. For accessing the complete dataset, kindly visit the official page of the dataset.
