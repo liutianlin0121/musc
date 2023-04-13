@@ -10,7 +10,7 @@ We present a novel multiscale dictionary model that is both simple and mathemati
 
 
 <p align="center">
-<img src = "./fig/mat_prod_ista_unet.png" width=95%>
+<img src = "./fig/mat_prod_ista_unet.png" width=100%>
 </p>
 
 <br />
