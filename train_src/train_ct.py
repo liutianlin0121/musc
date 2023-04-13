@@ -4,11 +4,7 @@ from torch import nn
 from torch.nn.functional import mse_loss
 import torch
 import pytorch_lightning as pl
-# from lightning.pytorch import Trainer
-# from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
-# import lightning.pytorch as pl
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
-# from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.loggers import TensorBoardLogger
 
 from musc.dataloaders.load_lodopab_ct import get_dataloaders_ct
@@ -114,7 +110,7 @@ def main():
       'learning_rate': args.LEARNING_RATE,
       'train_loss_fun': train_loss_fun,
       'weight_decay': args.WEIGHT_DECAY,
-      'eval_loss_fun': my_psnr,  # partial(psnr, max_val=1.),
+      'eval_loss_fun': my_psnr,
       'relu_out_bool': args.RELU_OUT_BOOL,
       'eta_min': args.ETA_MIN,
       't_max': args.NUM_EPOCH * len(loaders['train']) // len(args.gpu_devices),
@@ -146,7 +142,8 @@ def main():
     # track_grad_norm=2,
     devices=args.gpu_devices,
     accelerator='gpu',
-    strategy='deepspeed_stage_2', #'ddp_sharded', #'ddp', #DDPStrategy(find_unused_parameters=False),
+    strategy='deepspeed_stage_2',
+    #'ddp_sharded', #'ddp', #DDPStrategy(find_unused_parameters=False),
     max_epochs=args.NUM_EPOCH,
     gradient_clip_val=args.GRADIENT_CLIP_VAL,
     callbacks=[checkpoint_callback, lr_monitor],
