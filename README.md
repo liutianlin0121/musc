@@ -47,7 +47,7 @@ To train the MUSC model, use python scripts in the folder `train_src`.
 <br />
 
 ## Evaluation & checkpoints
-The checkpoints for a MUSC model trained on the LoDoPaB-CT dataset are available for download on Google Drive. You can find them [here](https://drive.google.com/file/d/1xiOW0fy7TApJ3MawMM0mspIR2veqp4Sn/view?usp=sharing). 
+The checkpoints for a MUSC model trained on the LoDoPaB-CT dataset are available for download on Google Drive. You can find them [here](https://drive.google.com/file/d/1HKalEjqpDI9OBFpYkSXk_Ma4hqvkOeIX/view?usp=share_link). 
 
 The `notebooks/evaluate_musc_ct.ipynb` notebook can be used to evaluate the model on the test set.
 
