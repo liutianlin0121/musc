@@ -1,8 +1,8 @@
 """Sparse coding module"""
 from typing import List, Optional
 import torch.nn as nn
-# from nn.functional import softplus
 import torch
+from torch.nn.functional import softplus
 from musc.nn.dictionary import UDictionary, TransposedUDictionary
 from musc.nn.activations import relu, softshrink
 from musc.nn.utils import get_all_conv_and_transpose_conv
@@ -104,8 +104,21 @@ class MUSC(nn.Module):
       for param in self.lasso_lambda_iter_list.parameters():
         param.requires_grad = False
 
-    self.ista_stepsizes = torch.nn.ParameterList(
-        [nn.Parameter(torch.ones(1) * 0.6) for i in range(self.ista_num_steps)])
+    # self.ista_stepsizes = torch.nn.ParameterList(
+    #     [nn.Parameter(torch.ones(1) * 0.6) for i in range(self.ista_num_steps)])
+
+    # a list of stepsizes, one for each iteration
+    ista_stepsizes_iter_list = [[
+        torch.nn.Parameter(
+            torch.ones((1, hidden_layer_widths[i], 1, 1)) * 0.6 )
+        for i, _ in enumerate(hidden_layer_widths)
+    ] for _ in range(ista_num_steps)]
+
+    # a list of stepsizes, with length equal to:
+    # (the number of scales) x (the number of iterations)
+    self.ista_stepsizes_iter_list = nn.ParameterList(
+        [item for sublist in ista_stepsizes_iter_list for item in sublist])
+
 
   def forward(self, x):
     # pylint: disable=missing-function-docstring
@@ -117,7 +130,7 @@ class MUSC(nn.Module):
 
   def run_ista_steps(self, z):
     """ISTA steps
-    alpha_{k+1} = S_{lambda}(alpha_k + D^T z - D^T D alpha_{k})
+    alpha_{k+1} = S_{lambda}(alpha_k + stepsize * (D^T z - D^T D alpha_{k}))
     """
     # pylint:disable=invalid-name
     D = self.encoder_dictionary
@@ -126,18 +139,24 @@ class MUSC(nn.Module):
 
     for step in range(self.ista_num_steps):
       # make sure that the stepsize is positive
-      stepsize = nn.functional.softplus(self.ista_stepsizes[step])
       if step == 0:
-        # \alpha <= D^{\top}z
-        alphas = [stepsize * code for code in Dtz]
+        # \alpha <= stepsize * D^{\top}z
+        alphas =  []
+        for scale in range(self.num_scales):
+          stepsize = softplus(self.ista_stepsizes_iter_list[scale])
+          alphas.append(stepsize * Dtz[scale])
       else:
         # \alpha <= \alpha + stepsize * (D^{\top}z - D^{\top}D \alpha))
         DtDalphas = Dt(D(alphas))
         for scale in range(self.num_scales):
-            alphas[scale] = \
-              alphas[scale] + stepsize * (Dtz[scale] - DtDalphas[scale])
+          stepsize = softplus(
+            self.ista_stepsizes_iter_list[step * self.num_scales + scale])
+          alphas[scale] = \
+            alphas[scale] + stepsize * (Dtz[scale] - DtDalphas[scale])
 
       for scale in range(self.num_scales):
+        stepsize = softplus(
+          self.ista_stepsizes_iter_list[step * self.num_scales + scale])
         alphas[scale] = self.thres_operator(
             alphas[scale],
             lambd=stepsize * self.lasso_lambda_iter_list[
